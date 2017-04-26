@@ -39,11 +39,14 @@
      "mode": "code",
     };
     var editor = new JSONEditor(container, options);
+    try {
+      var json = JSON.parse(localStorage.getItem('elastic.query'));
+    }catch(e) {
+      var json = {
+         "query": {}
+      };
+    }
 
-    // set json
-    var json = {
-       "query": {}
-    };
     editor.set(json);
 
     window.onload = function() {
@@ -52,7 +55,6 @@
        "mode": "view",
       };
       const resultCodeEditor = new JSONEditor(resultCode, options);
-      // set json
 
       const host = document.getElementById('host');
       const access_key = document.getElementById('access_key');
@@ -75,6 +77,8 @@
         localStorage.setItem('elastic.host', event.target.value);
       });
 
+
+
       queryExecuteBtn.addEventListener('click', function(){
         var client = new elasticsearch.Client({
           connectionClass: require('http-aws-es'),
@@ -86,8 +90,10 @@
           },
           log: 'trace'
         });
-
-        client.search(editor.get().query).then(function (body) {
+        const query = editor.get().query;
+        console.log(JSON.stringify(editor.get()));
+        localStorage.setItem('elastic.query', JSON.stringify(editor.get()));
+        client.search(query).then(function (body) {
           var hits = body.hits.hits;
           resultCodeEditor.set(hits);
         }, function (error) {
