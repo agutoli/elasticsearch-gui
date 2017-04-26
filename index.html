@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <title>Hello World!</title>
+    <link href="./app.css" rel="stylesheet" type="text/css">
+    <link href="./node_modules/jsoneditor/dist/jsoneditor.min.css" rel="stylesheet" type="text/css">
+    <script src="./node_modules/jsoneditor/dist/jsoneditor.min.js"></script>
+  </head>
+  <body>
+    <div class="main">
+      <div class="query-code">
+        <div>
+          <div class="form-login">
+            <label>Access Key</label>
+            <input id="access_key" type="text" />
+            <label>Secret Key</label>
+            <input id="secret_key" type="password" />
+            <label>Host</label>
+            <input id="host" type="text" />
+          </div>
+          <button id="query-execute-btn" class="query-execute">Executar query</button>
+          <div id="jsoneditor" style="width: 400px; height: 400px;"></div>
+        </div>
+        <div class="result-screen">
+          <h2>Result</h2>
+          <div id="result-code"></div>
+        </div>
+      </div>
+    </div>
+  </body>
+  <script>
+  var elasticsearch = require('elasticsearch');
+
+    // You can also require other files to run in this process
+    require('./renderer.js')
+    var container = document.getElementById("jsoneditor");
+    var options = {
+     "mode": "code",
+    };
+    var editor = new JSONEditor(container, options);
+
+    // set json
+    var json = {
+       "query": {}
+    };
+    editor.set(json);
+
+    window.onload = function() {
+      const resultCode = document.getElementById("result-code");
+      const options = {
+       "mode": "view",
+      };
+      const resultCodeEditor = new JSONEditor(resultCode, options);
+      // set json
+
+      const host = document.getElementById('host');
+      const access_key = document.getElementById('access_key');
+      const secret_key = document.getElementById('secret_key');
+      const queryExecuteBtn = document.getElementById('query-execute-btn');
+
+      host.value = localStorage.getItem('elastic.host');
+      access_key.value = localStorage.getItem('elastic.access_key');
+      secret_key.value = localStorage.getItem('elastic.secret_key');
+
+      access_key.addEventListener('change', (event) => {
+        localStorage.setItem('elastic.access_key', event.target.value);
+      });
+
+      secret_key.addEventListener('change', (event) => {
+        localStorage.setItem('elastic.secret_key', event.target.value);
+      });
+
+      host.addEventListener('change', (event) => {
+        localStorage.setItem('elastic.host', event.target.value);
+      });
+
+      queryExecuteBtn.addEventListener('click', function(){
+        var client = new elasticsearch.Client({
+          connectionClass: require('http-aws-es'),
+          host: localStorage.getItem('elastic.host'),
+          amazonES: {
+            region: 'us-east-1',
+            accessKey: localStorage.getItem('elastic.access_key'),
+            secretKey: localStorage.getItem('elastic.secret_key'),
+          },
+          log: 'trace'
+        });
+
+        client.search(editor.get().query).then(function (body) {
+          var hits = body.hits.hits;
+          resultCodeEditor.set(hits);
+        }, function (error) {
+          console.trace(error.message);
+        });
+      })
+    }
+  </script>
+</html>
